@@ -1,4 +1,4 @@
-# Cluster segregation Metric
+# Implement Cluster and Radial Metrics
 
 from scipy.spatial import ConvexHull
 from shapely.geometry import Polygon
@@ -6,33 +6,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 import time
-
-#points1 = np.random.rand(10, 2)   # 30 random points in 2-D
-#points2 = np.random.rand(10, 2)   # 30 random points in 2-D
-
-#hull1 = ConvexHull(points1)
-#hull2 = ConvexHull(points2)
-
-#print "Area:", hull1.area, hull2.area
-
-#hull1_points = points1[hull1.vertices]
-#hull2_points = points2[hull2.vertices]
-
-#poly1 = Polygon(hull1_points)
-#poly2 = Polygon(hull2_points)
-#solution = poly1.intersection(poly2)
-#solution_points = np.array(solution.exterior.coords.xy).T
-
-#print "Area polys:", poly1.area, poly2.area, solution.area
-
-#hull1_points = np.append(hull1_points, [hull1_points[0]], axis=0)
-#hull2_points = np.append(hull2_points, [hull2_points[0]], axis=0)
-#solution_points = np.append(solution_points, [solution_points[0]], axis=0)
-
-#plt.plot(hull1_points[:,0], hull1_points[:,1], 'r--', lw=2)
-#plt.plot(hull2_points[:,0], hull2_points[:,1], 'b--', lw=2)
-#plt.plot(solution_points[:,0], solution_points[:,1], 'g--', lw=2)
-#plt.show()
 
 class ClusterMetric(object):
 	"""	This class implement a metric to evaluate the pairwise intersection area 
@@ -125,15 +98,3 @@ class RadialMetric(object):
 		d = self.q[r] - self.c
 		dist = np.sqrt(d[0]**2 + d[1]**2)
 		return dist
-
-		
-#ROBOTS = 12
-#GROUPS = 4
-#WORLD = 20
-#dAA = np.linspace(7, WORLD, GROUPS) # radial
-#q = 20 * (np.random.rand(ROBOTS,2) - 0.5) # position
-#cm = ClusterMetric(q, GROUPS, ROBOTS)
-#print cm.feature()
-
-#rm = RadialMetric(q, GROUPS, ROBOTS, dAA)
-#print rm.feature()

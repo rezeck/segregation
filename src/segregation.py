@@ -22,121 +22,102 @@
 #################################################################################
 import numpy as np
 import math
+from metric import *
 
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-#####################################################################
-# Constants (you may freely set these values).
-#####################################################################
-alpha	= 1.5 # scalar control gain
-#dAA		= np.array([3.0, 5.0, 6.0, 12.0])
-dAA = np.array([7.0])
-dAB		= 20.0
+class Segregation(object):
+	"""docstring for Segregation"""
+	def __init__(self, alpha=1.5, ROBOTS=15, GROUPS=3, WORLD=40, dt=0.005, dAA=[7], dAB=20):
+		self.alpha = alpha
+		self.ROBOTS = ROBOTS
+		self.GROUPS = GROUPS
+		self.WORLD = WORLD
+		self.dt = dt
+		self.dAA = np.array(dAA)
+		self.dAB = dAB
+		# validation step
+		self.validation()
+		# Initialization
+		self.setup()
+		
+	def validation(self):
+		if self.ROBOTS % self.GROUPS != 0:
+			print "ROBOTS must be a multiple of GROUPS\n"
+			quit()
 
-ROBOTS	= 80
-GROUPS	= 10
-WORLD	= 20.0
-dt		= 0.02
+		if (len(self.dAA) > 1.0) and (len(self.dAA) != self.GROUPS):
+			print "length(dAA) must be equal to GROUPS\n"
+			quit()
 
-#####################################################################
-# Validation step
-#####################################################################
-if ROBOTS % GROUPS != 0:
-	print "ROBOTS must be a multiple of GROUPS\n"
-	quit()
+		if any(self.dAA <= math.sqrt(3.0)/9.0) and self.dAB <= math.sqrt(3.0)/9.0:
+			print "Collective potential function is not strictly convex!\n"
+			print "dAA and dAB must be larger than sqrt(3)/9\n"
+			quit()
 
-if (len(dAA) > 1.0) and (len(dAA) != GROUPS):
-	print "length(dAA) must be equal to GROUPS\n"
-	quit()
+		if (len(self.dAA) > 1.0):
+			print "Robots will segregate to a radial configuration"
+			self.which_metric = 'radial'
+		else:	
+			print "Robots will segregate to a cluster configuration"
+			self.which_metric = 'cluster'
 
-if any(dAA <= math.sqrt(3.0)/9.0) and dAB <= math.sqrt(3.0)/9.0:
-	print "Collective potential function is not strictly convex!\n"
-	print "dAA and dAB must be larger than sqrt(3)/9\n"
-	quit()
+	def setup(self):
+		x = np.array(range(1, self.ROBOTS+1))
+		i, j = np.meshgrid(x, x)
 
-#####################################################################
-# Initialization
-#####################################################################
-# AA[i,j] == 1 if i and j belong to the same team,  0 otherwise.
-# AB[i,j] == 1 if i and j belong to distinct teams, 0 otherwise.
-x = np.array(range(1, ROBOTS+1))
-i, j = np.meshgrid(x, x)
+		gpr = float(self.GROUPS)/float(self.ROBOTS)
+		
+		AA = (np.floor(gpr*(i-1.0)) == np.floor(gpr*(j-1.0)))*1.0
+		AB = (np.floor(gpr*(i-1.0)) != np.floor(gpr*(j-1.0)))*1.0
+		
+		# Vectorization of dAA and dAB.
+		if len(self.dAA) == 1.0:
+			self.const = np.multiply(self.dAA, AA) + np.multiply(self.dAB, AB)
+		else:
+			self.const = np.kron(np.diag(self.dAA), np.ones((self.ROBOTS/self.GROUPS, self.ROBOTS/self.GROUPS))) + np.multiply(self.dAB, AB)
+		
+		#np.random.seed(2)
+		self.q = self.WORLD * (np.random.rand(self.ROBOTS, 2) - 0.5) # position
+		#np.random.seed(None)
 
-gpr = float(GROUPS)/float(ROBOTS)
+		self.v = np.zeros((self.ROBOTS, 2)) # velocity
 
-AA = (np.floor(gpr*(i-1.0)) == np.floor(gpr*(j-1.0)))*1.0
-AB = (np.floor(gpr*(i-1.0)) != np.floor(gpr*(j-1.0)))*1.0
+		self.metric_data = []
+		# Choice which metric should the robots use
+		if self.which_metric == 'cluster':
+			self.metric = ClusterMetric(self.GROUPS, self.ROBOTS)		
+		elif which_metric == 'radial':
+			self.metric = RadialMetric(self.GROUPS, self.ROBOTS, self.const)
 
-# vectorization of dAA and dAB.
-if len(dAA) == 1.0:
-	const = np.multiply(dAA, AA) + np.multiply(dAB, AB)
-else:
-	const = np.kron(np.diag(dAA), np.ones((ROBOTS/GROUPS, ROBOTS/GROUPS))) + np.multiply(dAB, AB)
+	def update(self):
+		last = time.clock()
 
-q = WORLD * (np.random.rand(ROBOTS,2) - 0.5) # position
-
-v = np.zeros((ROBOTS, 2)) # velocity
-
-
-#####################################################################
-# Initialize all Plots
-#####################################################################
-fig = plt.figure()
-fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
-ax = fig.add_subplot(111, aspect='equal', autoscale_on=False,
-                     xlim=(-WORLD, WORLD), ylim=(-WORLD, WORLD))
-cmap = plt.get_cmap('hsv')
-colors = [cmap(i) for i in np.linspace(0, 1, GROUPS)]
-
-handler = []
-for i in range(GROUPS):
-	particles, = ax.plot([], [], 'o', color=colors[i], ms=10)
-	start = int(math.floor((i) * ROBOTS/GROUPS))
-	stop = int(math.floor((i+1) * ROBOTS/GROUPS))
-	particles.set_data(q[start:stop, 0], q[start:stop, 1])
-	handler.append(particles)
-
-np.seterr(divide='ignore')
-
-#####################################################################
-# Simulation
-#####################################################################
-def animate(i):
-	global handler, GROUPS, q, v
-
-	# Relative position among all pairs [q(j:2) - q(i:2)].
-	xij = np.subtract(np.repeat(q[:,0], ROBOTS).reshape(ROBOTS,ROBOTS), q[:,0])
-	yij = np.subtract(np.repeat(q[:,1], ROBOTS).reshape(ROBOTS,ROBOTS), q[:,1])
-
-
-	# Relative velocity among all pairs [v(j:2) - v(i:2)].
-	vxij = np.subtract(np.repeat(v[:,0], ROBOTS).reshape(ROBOTS,ROBOTS), v[:,0])
-	vyij = np.subtract(np.repeat(v[:,1], ROBOTS).reshape(ROBOTS,ROBOTS), v[:,1])
-
-	# Relative distance among all pairs.
-	dsqr = xij**2 + yij**2
-	dist = np.sqrt(dsqr)
-
-	# Control equation.
-	dV = np.multiply(alpha, (dist - const + 1.0/dist - const/dsqr))
-	ax = np.multiply(-dV, xij)/dist - vxij
-	ay = np.multiply(-dV, yij)/dist - vyij
-
-	# a(i, :) -> acceleration input for robot i.
-	a = np.array([np.nansum(ax, axis=1), np.nansum(ay, axis=1)]).T
-
- 	# simple taylor expansion.
-	q = q + v*dt + a*(0.5*dt**2)
-	v = v + a*dt
-
-	# Update data for drawing.
-	for i in range(GROUPS):
-		start = int(math.floor((i) * ROBOTS/GROUPS))
-		stop = int(math.floor((i+1) * ROBOTS/GROUPS))
-		handler[i].set_data(q[start:stop, 0], q[start:stop, 1])
-	return tuple(handler)
-
-ani = animation.FuncAnimation(fig, animate, frames=600, interval=1, blit=False)
-plt.show()
-
-
+		# Relative position among all pairs [q(j:2) - q(i:2)].
+		xij = np.subtract(np.repeat(self.q[:,0], self.ROBOTS).reshape(self.ROBOTS, self.ROBOTS), self.q[:,0])
+		yij = np.subtract(np.repeat(self.q[:,1], self.ROBOTS).reshape(self.ROBOTS, self.ROBOTS), self.q[:,1])
+	
+		# Relative velocity among all pairs [v(j:2) - v(i:2)].
+		vxij = np.subtract(np.repeat(self.v[:,0], self.ROBOTS).reshape(self.ROBOTS, self.ROBOTS), self.v[:,0])
+		vyij = np.subtract(np.repeat(self.v[:,1], self.ROBOTS).reshape(self.ROBOTS, self.ROBOTS), self.v[:,1])
+	
+		# Relative distance among all pairs.
+		dsqr = xij**2 + yij**2
+		dist = np.sqrt(dsqr)
+	
+		# Control equation.
+		dU = np.multiply(self.alpha, (dist - self.const + 1.0/dist - self.const/dsqr))
+	
+		ax = np.multiply(-dU, xij)/dist - vxij # damping
+		ay = np.multiply(-dU, yij)/dist - vyij # damping
+	
+		# a(i, :) -> acceleration input for robot i.
+		a = np.array([np.nansum(ax, axis=1), np.nansum(ay, axis=1)]).T
+	
+		# Add noise to position
+		#a = np.random.normal(a, e_rate*abs(a))
+	
+	 	# simple taylor expansion.
+		self.q = self.q + self.v*self.dt + a*(0.5*self.dt**2)
+		self.v = self.v + a*self.dt
+	
+		self.metric.compute(self.q)
+		self.metric_data.append(self.metric.feature())

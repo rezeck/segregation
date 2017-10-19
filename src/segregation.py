@@ -26,7 +26,7 @@ from metric import *
 
 class Segregation(object):
 	"""docstring for Segregation"""
-	def __init__(self, alpha=1.5, ROBOTS=15, GROUPS=3, WORLD=40, dt=0.005, dAA=[7], dAB=20):
+	def __init__(self, alpha=1.5, ROBOTS=15, GROUPS=3, WORLD=40, dt=0.01, dAA=[7], dAB=20, noise=0.05):
 		self.alpha = alpha
 		self.ROBOTS = ROBOTS
 		self.GROUPS = GROUPS
@@ -34,6 +34,7 @@ class Segregation(object):
 		self.dt = dt
 		self.dAA = np.array(dAA)
 		self.dAB = dAB
+		self.noise = noise
 		# validation step
 		self.validation()
 		# Initialization
@@ -85,7 +86,7 @@ class Segregation(object):
 		# Choice which metric should the robots use
 		if self.which_metric == 'cluster':
 			self.metric = ClusterMetric(self.GROUPS, self.ROBOTS)		
-		elif which_metric == 'radial':
+		elif self.which_metric == 'radial':
 			self.metric = RadialMetric(self.GROUPS, self.ROBOTS, self.const)
 
 	def update(self):
@@ -101,6 +102,12 @@ class Segregation(object):
 	
 		# Relative distance among all pairs.
 		dsqr = xij**2 + yij**2
+
+		# Add noise to sensor
+		s = (dsqr) * (self.noise)/3.0 + np.finfo(float).eps
+		# Setup Normal-RNG to operate with max "noise" percent error with an error of 99.7% 3s = e
+		dsqr = np.random.normal(dsqr, s)
+
 		dist = np.sqrt(dsqr)
 	
 		# Control equation.
@@ -112,8 +119,8 @@ class Segregation(object):
 		# a(i, :) -> acceleration input for robot i.
 		a = np.array([np.nansum(ax, axis=1), np.nansum(ay, axis=1)]).T
 	
-		# Add noise to position
-		#a = np.random.normal(a, e_rate*abs(a))
+		# Add noise to movement
+		#a = np.random.normal(a, 0.5*abs(a))
 	
 	 	# simple taylor expansion.
 		self.q = self.q + self.v*self.dt + a*(0.5*self.dt**2)

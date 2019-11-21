@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 import time
+from numba import jit
+
 
 class ClusterMetric(object):
 	"""	This class implement a metric to evaluate the pairwise intersection area 
@@ -18,21 +20,20 @@ class ClusterMetric(object):
 
 	def compute(self, q):
 	# Compute for each combination of groups of robots the intersection area and accumulate it
-		self.mclu = 0.0
-		self.q = q
+		mclu = 0.0
 		for i in range(self.GROUPS):
 			idx_i = (int(math.floor((i) * self.ROBOTS/self.GROUPS)), int(math.floor((i+1) * self.ROBOTS/self.GROUPS)))
-			qi = self.q[idx_i[0]:idx_i[1]]
+			qi = q[idx_i[0]:idx_i[1]]
 			for j in range(self.GROUPS):
 				idx_j = (int(math.floor((j) * self.ROBOTS/self.GROUPS)), int(math.floor((j+1) * self.ROBOTS/self.GROUPS)))
-				qj = self.q[idx_j[0]:idx_j[1]]
+				qj = q[idx_j[0]:idx_j[1]]
 				if idx_i != idx_j:
-					self.mclu += self.compute_area(qi, qj)
-		return self.mclu
+					mclu += self.compute_area(qi, qj)
+		return mclu
 
-	def feature(self):
+	#def feature(self):
 	# Return the sum of area of all combinations of intersection between convex hulls formed by group of robots.
-		return self.mclu
+	#	return self.mclu
 
 	def compute_area(self, A, B):
 	# Compute the area between two polygons formed by two convex hull.
@@ -54,7 +55,6 @@ class ClusterMetric(object):
 		# Then return the area of the intersection
 		return AB_inter.area
 
-
 class RadialMetric(object):
 	"""This class implement Gross et al. (2009) metric. 
 	Their metric requires robots to segregate around a particulary stationary point c."""
@@ -62,7 +62,7 @@ class RadialMetric(object):
 		self.GROUPS = GROUPS
 		self.ROBOTS = ROBOTS
 		self.const = const
-		
+
 	def compute(self, q):
 		# This method implement the radial segregation metric. It counts the number of robots outrside the 
 		# correct spherical shells according to the values of each dAA_k and normalizes the result into the unit interval.
@@ -72,9 +72,12 @@ class RadialMetric(object):
 		self.n = float(len(q))
 		self.c = np.sum(self.q, axis=0)/self.n
 
-		for i in range(self.ROBOTS):
-			for j in range(self.ROBOTS):
-				self.mrad += self.radial_error(i, j)
+
+		#for i in range(self.ROBOTS):
+		#	for j in range(self.ROBOTS):
+		#		self.mrad += self.radial_error(i, j)
+
+		self.mrad = fast(self.ROBOTS, self.const, self.q, self.c)
 		self.mrad /= (self.n**2)
 		return self.mrad
 
@@ -96,5 +99,31 @@ class RadialMetric(object):
 	# Compute the Euclidean distance from robot r to the stationary point c
 	def distToC(self, r):
 		d = self.q[r] - self.c
+		dist = np.sqrt(d[0]**2 + d[1]**2)
+		return dist
+
+@jit
+def fast(ROBOTS, const, q, c):
+	mrad = 0.0
+	for i in range(ROBOTS):
+		for j in range(ROBOTS):
+			mrad += radial_error(i, j, const, q, c)
+	return mrad
+
+@jit
+def radial_error( i, j, const, q, c):
+		# Apply a cost when robots which sould be "inside" the other and closer to the stationary point
+		dAAk = const[i, i]
+		dAAl = const[j, j]
+		if dAAk != dAAl: # if dissimilar groups
+			if dAAk < dAAl and distToC(i, q, c) >= distToC(j, q, c):
+				return 1.0
+			if dAAk > dAAl and distToC(i, q, c) < distToC(j, q, c):
+				return 1.0
+		return 0.0
+
+@jit
+def distToC(r, q, c):
+		d = q[r] - c
 		dist = np.sqrt(d[0]**2 + d[1]**2)
 		return dist

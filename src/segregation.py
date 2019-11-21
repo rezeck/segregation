@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 #    _________                                         __  .__                  #
 #   /   _____/ ____   ___________   ____   _________ _/  |_|__| ____   ____     #
 #   \_____  \_/ __ \ / ___\_  __ \_/ __ \ / ___\__  \\   __\  |/  _ \ /    \    #
@@ -6,7 +7,7 @@
 #          \/     \/_____/             \/_____/     \/                    \/    #
 #  																				#
 #################################################################################
-# Based on Matlab code of Vinicius Graciano Santos 
+# Adapted from Matlab code of Vinicius Graciano Santos 
 # Author: Paulo Rezeck
 #################################################################################
 # Cluster Segregation: dAA < dAB
@@ -23,7 +24,7 @@
 import numpy as np
 import math
 from metric import *
-
+np.seterr(divide='ignore', invalid='ignore')
 class Segregation(object):
 	"""docstring for Segregation"""
 	def __init__(self, alpha=1.5, ROBOTS=15, GROUPS=3, WORLD=40, dt=0.01, dAA=[7], dAB=20, noise=0.05):
@@ -55,10 +56,10 @@ class Segregation(object):
 			quit()
 
 		if (len(self.dAA) > 1.0):
-			print "Robots will segregate to a radial configuration"
+			#print "Robots will segregate to a radial configuration"
 			self.which_metric = 'radial'
 		else:	
-			print "Robots will segregate to a cluster configuration"
+			#print "Robots will segregate to a cluster configuration"
 			self.which_metric = 'cluster'
 
 	def setup(self):
@@ -104,9 +105,10 @@ class Segregation(object):
 		dsqr = xij**2 + yij**2
 
 		# Add noise to sensor
-		s = (dsqr) * (self.noise)/3.0 + np.finfo(float).eps
-		# Setup Normal-RNG to operate with max "noise" percent error with an error of 99.7% 3s = e
-		dsqr = np.random.normal(dsqr, s)
+		if self.noise != 0.00:
+			s = (dsqr) * (self.noise)/3.0 + np.finfo(float).eps
+			# Setup Normal-RNG to operate with max "noise" percent error with an error of 99.7% -> 3s = e
+			dsqr = np.random.normal(dsqr, s)
 
 		dist = np.sqrt(dsqr)
 	
@@ -117,14 +119,14 @@ class Segregation(object):
 		ay = np.multiply(-dU, yij)/dist - vyij # damping
 	
 		# a(i, :) -> acceleration input for robot i.
-		a = np.array([np.nansum(ax, axis=1), np.nansum(ay, axis=1)]).T
-	
+		self.a = np.array([np.nansum(ax, axis=1), np.nansum(ay, axis=1)]).T
 		# Add noise to movement
-		#a = np.random.normal(a, 0.5*abs(a))
+		# s = (abs(a)*self.noise/3.0) + np.finfo(float).eps
+		#a = np.random.normal(a, s)
 	
 	 	# simple taylor expansion.
-		self.q = self.q + self.v*self.dt + a*(0.5*self.dt**2)
-		self.v = self.v + a*self.dt
+		self.q = self.q + self.v*self.dt + self.a*(0.5*self.dt**2)
+		self.v = self.v + self.a*self.dt
 	
-		self.metric.compute(self.q)
-		self.metric_data.append(self.metric.feature())
+	def feature(self):
+		return self.metric.compute(self.q)

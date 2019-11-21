@@ -1,0 +1,17 @@
+exp_150_5_cluster_no_noise: ok
+exp_150_10_cluster_no_noise: ok
+exp_150_15_cluster_no_noise: ok
+
+exp_150_5_radial_no_noise: ok
+exp_150_10_radial_no_noise: ok
+exp_150_15_radial_no_noise: ok
+
+exp_150_5_cluster_1_noise: ok
+exp_150_5_cluster_5_noise: ok
+exp_150_5_cluster_10_noise: ok
+exp_150_5_cluster_20_noise: ok
+
+exp_150_15_radial_1_noise: ok
+exp_150_15_radial_5_noise: ok
+exp_150_15_radial_10_noise: ok
+exp_150_15_radial_20_noise: ok

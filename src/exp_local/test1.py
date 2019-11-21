@@ -11,15 +11,15 @@ import matplotlib.pyplot as plt
 filename = "data/exp_150_5_cluster_0_noise.npy"
 
 # Setup
-ROBOTS = 150
-GROUPS = 5
+ROBOTS = 15
+GROUPS = 3
 WORLD	= 40.0
 alpha = 1.0
 noise = 0.00
 dAA = np.array([5.0])
 dAB		= 20.0
-COMMRADIUS = 100
-ITERATIONS = 5000
+COMMRADIUS = 10
+ITERATIONS = 500
 TRIALS = 5
 
 # Structure data
@@ -37,21 +37,14 @@ for i in range(TRIALS):
 	print (colored("[Experiment]", "yellow")),
 	print (colored(i+1, 'green')),
 	print (colored("of "+str(TRIALS), "red"))
-	s = Segregation(ROBOTS=ROBOTS, GROUPS=GROUPS, WORLD=WORLD, alpha=alpha, noise=noise, dAA=dAA, dAB=dAB, seed=i, radius=COMMRADIUS, display_mode=True, which_metric='ncluster')
+	s = Segregation(ROBOTS=ROBOTS, GROUPS=GROUPS, WORLD=WORLD, alpha=alpha, noise=noise, dAA=dAA, dAB=dAB, seed=i, radius=COMMRADIUS, display_mode=True, which_metric='average')
 	bar.start()
 	for j in range(ITERATIONS):
 		bar.update(j)
 		s.update()
-		if j % 50 == 0:
+		if j % 30 == 0:
 			s.display()
 		#data_control.append(s.a)
-	s.screenshot("data/trial_"+str(i)+".png")
-	#plt.figure()
-	#data = np.array(s.metric_data)
-	#plt.plot(np.log(range(len(data[:]))), data[:], label="Clusters " + str(i) )
-	#plt.legend()
-	#plt.ylim(0, ROBOTS)
-	#plt.show()
 	print ("\n")
 	data_metric.append(s.metric_data)
 bar.finish()
@@ -59,10 +52,10 @@ bar.finish()
 plt.figure()
 for i in range(TRIALS):
 	data = np.array(data_metric[i])
-	plt.plot(np.log(range(len(data[:]))), data[:], label="dAA " + str(i))
+	plt.plot(np.log(range(len(data[:,0]))), data[:, 0], label="dAA " + str(i))
+	plt.plot(np.log(range(len(data[:,1]))), data[:, 1], '--', label="dAB " + str(i) )
 plt.legend()
 plt.show()
-
 raw_input("Press the <ENTER> key to finish...")
 print (colored("[Experiment has been completed!]", 'green'))
 print (colored("[Saving Experiments]", 'grey'))

@@ -24,10 +24,12 @@
 import numpy as np
 import math
 from metric import *
+import matplotlib.animation as animation
+
 np.seterr(divide='ignore', invalid='ignore')
 class Segregation(object):
 	"""docstring for Segregation"""
-	def __init__(self, alpha=1.5, ROBOTS=15, GROUPS=3, WORLD=40, dt=0.01, dAA=[7], dAB=20, noise=0.05, seed=None):
+	def __init__(self, alpha=1.5, ROBOTS=15, GROUPS=3, WORLD=40, dt=0.01, dAA=[7], dAB=20, noise=0.05, seed=None, radius=1000, display_mode=False, which_metric=''):
 		self.alpha = alpha
 		self.ROBOTS = ROBOTS
 		self.GROUPS = GROUPS
@@ -37,6 +39,9 @@ class Segregation(object):
 		self.dAB = dAB
 		self.noise = noise
 		self.seed = seed
+		self.RADIUS = radius
+		self.display_mode = display_mode
+		self.which_metric = which_metric
 		# validation step
 		self.validation()
 		# Initialization
@@ -56,12 +61,13 @@ class Segregation(object):
 			print ("dAA and dAB must be larger than sqrt(3)/9\n")
 			quit()
 
-		if (len(self.dAA) > 1.0):
-			#print "Robots will segregate to a radial configuration"
-			self.which_metric = 'radial'
-		else:	
-			#print "Robots will segregate to a cluster configuration"
-			self.which_metric = 'cluster'
+		if (self.which_metric == ''):
+			if (len(self.dAA) > 1.0):
+				#print "Robots will segregate to a radial configuration"
+				self.which_metric = 'radial'
+			else:	
+				#print "Robots will segregate to a cluster configuration"
+				self.which_metric = 'cluster'
 
 	def setup(self):
 		x = np.array(range(1, self.ROBOTS+1))
@@ -87,12 +93,39 @@ class Segregation(object):
 		self.metric_data = []
 		# Choice which metric should the robots use
 		if self.which_metric == 'cluster':
-			self.metric = ClusterMetric(self.GROUPS, self.ROBOTS)		
+			self.metric = ClusterMetric(self.GROUPS, self.ROBOTS)
+			print ("Using Cluster Metric!\n")	
 		elif self.which_metric == 'radial':
 			self.metric = RadialMetric(self.GROUPS, self.ROBOTS, self.const)
+			print ("Using Radial Metric!\n")	
+		elif self.which_metric == 'average':
+			self.metric = AverageMetric(self.GROUPS, self.ROBOTS)		
+			print ("Using Average Metric!\n")	
+		elif self.which_metric == 'ncluster':
+			self.metric = NClusterMetric(self.GROUPS, self.ROBOTS, self.dAA)		
+			print ("Using NCluster Metric!\n")	
+
+		if self.display_mode:
+			self.fig = plt.figure()
+			self.fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
+			self.ax = self.fig.add_subplot(111, aspect='equal', autoscale_on=False,
+								xlim=(-self.WORLD, self.WORLD), ylim=(-self.WORLD, self.WORLD))
+			self.ax.grid(color='gray', linestyle='-', linewidth=0.1)
+			self.cmap = plt.get_cmap('hsv')
+			self.colors = [self.cmap(i) for i in np.linspace(0, 500/self.GROUPS, 500)]
+
+			self.handler = []
+			for i in range(self.GROUPS):
+				self.particles, = self.ax.plot([], [], 'o', color=self.colors[i], ms=5)
+				start = int(math.floor((i) * self.ROBOTS/self.GROUPS))
+				stop = int(math.floor((i+1) * self.ROBOTS/self.GROUPS))
+				self.particles.set_data(self.q[start:stop, 0], self.q[start:stop, 1])
+				self.handler.append(self.particles)
+			plt.ion()
+			plt.show()
+
 
 	def update(self):
-		last = time.clock()
 
 		# Relative position among all pairs [q(j:2) - q(i:2)].
 		xij = np.subtract(np.repeat(self.q[:,0], self.ROBOTS).reshape(self.ROBOTS, self.ROBOTS), self.q[:,0])
@@ -112,6 +145,8 @@ class Segregation(object):
 			dsqr = np.random.normal(dsqr, s)
 
 		dist = np.sqrt(dsqr)
+		dist[dist > 2.0*self.RADIUS] = 10000000000.0
+		
 	
 		# Control equation.
 		dU = np.multiply(self.alpha, (dist - self.const + 1.0/dist - self.const/dsqr))
@@ -129,5 +164,44 @@ class Segregation(object):
 		self.q = self.q + self.v*self.dt + self.a*(0.5*self.dt**2)
 		self.v = self.v + self.a*self.dt
 	
-		v = self.metric.compute(self.q)
-		self.metric_data.append(v)
+		score = self.metric.compute(self.q)
+		self.metric_data.append(score)
+
+
+	def animate(self, i):
+		if self.display_mode:
+			# Update data for drawing.
+			for i in range(self.GROUPS):
+				start = int(math.floor((i) * self.ROBOTS/self.GROUPS))
+				stop = int(math.floor((i+1) * self.ROBOTS/self.GROUPS))
+				self.handler[i].set_data(self.q[start:stop, 0], self.q[start:stop, 1])
+			return tuple(self.handler)
+		else:
+			print("Display is set to false!")
+			return None
+
+
+	def display(self):
+		self.ax.clear()
+		self.ax = self.fig.add_subplot(111, aspect='equal', autoscale_on=False,
+								xlim=(-self.WORLD, self.WORLD), ylim=(-self.WORLD, self.WORLD))
+		self.ax.grid(color='gray', linestyle='-', linewidth=0.1)
+		self.ax.set_xlim([-self.WORLD, self.WORLD])
+		self.ax.set_ylim([-self.WORLD, self.WORLD])
+		plt.tight_layout()
+		for i in range(self.GROUPS):
+				start = int(math.floor((i) * self.ROBOTS/self.GROUPS))
+				stop = int(math.floor((i+1) * self.ROBOTS/self.GROUPS))
+				self.ax.plot(self.q[start:stop, 0], self.q[start:stop, 1], 'o', color=self.colors[i], ms=5)
+				if (self.RADIUS < 1000):
+					self.ax.plot(self.q[start:stop, 0], self.q[start:stop, 1], 'o', color=self.colors[i], ms=2*self.RADIUS*4.9, fillstyle='none') # fig.dpi/72.
+					
+ 		plt.draw()
+		plt.pause(0.0001)
+		#plt.cle
+		#self.anim = animation.FuncAnimation(self.fig, self.animate, frames=10, interval=1, blit=False)
+		#print("Starting Animation")
+		#plt.show()
+
+	def screenshot(self, filename):
+		plt.savefig(filename, dpi=500)

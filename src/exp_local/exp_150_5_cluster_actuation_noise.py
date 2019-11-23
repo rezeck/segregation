@@ -45,41 +45,44 @@ experiments_datactrl = []
 ACTUATION_noiseS = [0,1,5,10,20]
 #ACTUATION_noiseS = [0,20]
 
-for ACTUATION_noise in ACTUATION_noiseS:
-	# Make 100 Experiments
-	print (colored("[Initializing the experiments] exp_150_5_cluster_actuation_noise_"+str(ACTUATION_noise), 'yellow'))
-	data_metric = []
-	data_control = []
-	for i in range(TRIALS):
-		print (colored("[Experiment]", "yellow")),
-		print (colored(i+1, 'green')),
-		print (colored("of "+str(TRIALS), "red"))
-		s = Segregation(ROBOTS=ROBOTS, GROUPS=GROUPS, WORLD=WORLD, alpha=alpha,  noise_sensor=noise_sensor, noise_actuation=ACTUATION_noise/100.0, dAA=dAA, dAB=dAB, seed=i, radius=COMM_RADIUS, display_mode=True, which_metric='cluster')
-		bar.start()
-		dc = []
-		for j in range(ITERATIONS):
-			bar.update(j)
-			s.update()
-			a = sum(sum(abs(s.a)))
-			dc.append(a)
-			if j % 50 == 0:
-				s.display()
-		
-		s.screenshot("data4/log/png/log_exp_150_5_cluster_actuation_noise_"+str(ACTUATION_noise)+"_trial_"+str(i)+".png")
-		s.screenshot("data4/log/eps/log_exp_150_5_cluster_actuation_noise_"+str(ACTUATION_noise)+"_trial_"+str(i)+".eps")
-		plt.close('all')
-		print ("\n")
-		data_metric.append(s.metric_data)
-		data_control.append(dc)
-	experiments.append(data_metric)
-	experiments_datactrl.append(data_control)
-bar.finish()
+#for ACTUATION_noise in ACTUATION_noiseS:
+#	# Make 100 Experiments
+#	print (colored("[Initializing the experiments] exp_150_5_cluster_actuation_noise_"+str(ACTUATION_noise), 'yellow'))
+#	data_metric = []
+#	data_control = []
+#	for i in range(TRIALS):
+#		print (colored("[Experiment]", "yellow")),
+#		print (colored(i+1, 'green')),
+#		print (colored("of "+str(TRIALS), "red"))
+#		s = Segregation(ROBOTS=ROBOTS, GROUPS=GROUPS, WORLD=WORLD, alpha=alpha,  noise_sensor=noise_sensor, noise_actuation=ACTUATION_noise/100.0, dAA=dAA, dAB=dAB, seed=i, radius=COMM_RADIUS, display_mode=True, which_metric='cluster')
+#		bar.start()
+#		dc = []
+#		for j in range(ITERATIONS):
+#			bar.update(j)
+#			s.update()
+#			a = sum(sum(abs(s.a)))
+#			dc.append(a)
+#			if j % 50 == 0:
+#				s.display()
+#		
+#		s.screenshot("data4/log/png/log_exp_150_5_cluster_actuation_noise_"+str(ACTUATION_noise)+"_trial_"+str(i)+".png")
+#		s.screenshot("data4/log/eps/log_exp_150_5_cluster_actuation_noise_"+str(ACTUATION_noise)+"_trial_"+str(i)+".eps")
+#		plt.close('all')
+#		print ("\n")
+#		data_metric.append(s.metric_data)
+#		data_control.append(dc)
+#	experiments.append(data_metric)
+#	experiments_datactrl.append(data_control)
+#bar.finish()
+
+experiments = np.load("data4/exp_150_5_cluster_actuation_noise.npy")
+experiments_datactrl = np.load("data4/exp_150_5_cluster_actuation_noise_actuation.npy")
 
 #plt.figure()
 fig, ax = plt.subplots(num=None, facecolor='w', edgecolor='k')
 
-axins = zoomed_inset_axes(ax, 800 , loc=3)	
-axins2 = zoomed_inset_axes(ax, 250 , loc=5)	
+axins = zoomed_inset_axes(ax, 10000 , loc=3)	
+axins2 = zoomed_inset_axes(ax, 20000 , loc=5)	
 
 
 #Metric NCluster
@@ -107,13 +110,13 @@ for i in range(len(experiments)):
 	axins.semilogx(x, mean, filenames[i][2]+'-')
 	axins2.semilogx(x, mean, filenames[i][2]+'-')
 
-axins.set_xlim(5.0012, 5.0071)
-axins.set_ylim(599.836, 600.197)
+axins.set_xlim(8.88672, 8.88863)
+axins.set_ylim(523.822, 523.842)
 axins.set_yticks([])
 axins.set_xticks([])
 
-axins2.set_xlim(48.3221,48.5342)
-axins2.set_ylim(299.577,301.167)
+axins2.set_xlim(114.169,114.178)
+axins2.set_ylim(112.803,112.812)
 axins2.set_yticks([])
 axins2.set_xticks([])
 
@@ -137,11 +140,14 @@ plt.savefig("data4/plot_exp_150_5_cluster_actuation_noise_mclu.png", dpi=500)
 plt.savefig("data4/plot_exp_150_5_cluster_actuation_noise_mclu.eps", dpi=500)
 #plt.show()
 
+
+
+
 #plt.figure()
 fig1, ax1 = plt.subplots(num=None, facecolor='w', edgecolor='k')
 
-axins3 = zoomed_inset_axes(ax1, 4 , loc=3)	
-axins4 = zoomed_inset_axes(ax1, 5 , loc=5)	
+axins3 = zoomed_inset_axes(ax1, 14 , loc=3)	
+axins4 = zoomed_inset_axes(ax1, 1500 , loc=5)	
 
 for i in range(len(experiments_datactrl)):
 	datas = np.array(experiments_datactrl[i])
@@ -154,13 +160,13 @@ for i in range(len(experiments_datactrl)):
 	axins3.semilogx(x[50:], mean[50:], filenames[i][2]+'-')
 	axins4.semilogx(x[50:], mean[50:], filenames[i][2]+'-')
 
-axins3.set_xlim(68.8589, 85.4845)
-axins3.set_ylim(1185.39,1260.03)
+axins3.set_xlim(87.3356, 91.7836)
+axins3.set_ylim(1013.36, 1041.2)
 axins3.set_yticks([])
 axins3.set_xticks([])
 
-axins4.set_xlim(191.109,222.833)
-axins4.set_ylim(298.094,362,866)
+axins4.set_xlim(695.158, 695.652)
+axins4.set_ylim(6.00697, 6.19215)
 axins4.set_yticks([])
 axins4.set_xticks([])
 
@@ -176,7 +182,7 @@ ax1.grid(True)
 ax1.legend()
 
 mark_inset(ax1, axins3, loc1=1, loc2=2, fc="none", ec="0.5")
-mark_inset(ax1, axins4, loc1=2, loc2=3, fc="none", ec="0.5")
+mark_inset(ax1, axins4, loc1=3, loc2=4, fc="none", ec="0.5")
 
 plt.xticks(visible=False)
 plt.yticks(visible=False)

@@ -29,15 +29,18 @@ import matplotlib.animation as animation
 np.seterr(divide='ignore', invalid='ignore')
 class Segregation(object):
 	"""docstring for Segregation"""
-	def __init__(self, alpha=1.5, ROBOTS=15, GROUPS=3, WORLD=40, dt=0.01, dAA=[7], dAB=20, noise=0.05, seed=None, radius=1000, display_mode=False, which_metric=''):
+	def __init__(self, alpha=1.5, ROBOTS=15, GROUPS=3, WORLD=40, dt=0.01, dAA=[7], dAB=20, noise_sensor=0.05, noise_actuation=0.05, seed=None, radius=1000, display_mode=False, which_metric='', DEAD_ROBOTS=[]):
 		self.alpha = alpha
 		self.ROBOTS = ROBOTS
 		self.GROUPS = GROUPS
+		self.DEAD_ROBOTS = DEAD_ROBOTS
+		self.DEAD_ROBOTS.sort()
 		self.WORLD = WORLD
 		self.dt = dt
 		self.dAA = np.array(dAA)
 		self.dAB = dAB
-		self.noise = noise
+		self.noise_sensor = noise_sensor
+		self.noise_actuation = noise_actuation
 		self.seed = seed
 		self.RADIUS = radius
 		self.display_mode = display_mode
@@ -85,7 +88,7 @@ class Segregation(object):
 			self.const = np.kron(np.diag(self.dAA), np.ones((self.ROBOTS/self.GROUPS, self.ROBOTS/self.GROUPS))) + np.multiply(self.dAB, AB)
 		
 		np.random.seed(self.seed)
-		self.q = self.WORLD * (np.random.rand(self.ROBOTS, 2) - 0.5) # position
+		self.q = self.WORLD * (np.random.uniform(low=0.0, high=1.0, size=(self.ROBOTS, 2)) - 0.5) # position
 		np.random.seed(None)
 
 		self.v = np.zeros((self.ROBOTS, 2)) # velocity
@@ -103,24 +106,26 @@ class Segregation(object):
 			print ("Using Average Metric!\n")	
 		elif self.which_metric == 'ncluster':
 			self.metric = NClusterMetric(self.GROUPS, self.ROBOTS, self.dAA)		
+			self.metric2 = AverageMetric(self.GROUPS, self.ROBOTS)		
 			print ("Using NCluster Metric!\n")	
 
-		if self.display_mode:
-			self.fig = plt.figure()
-			self.fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
-			self.ax = self.fig.add_subplot(111, aspect='equal', autoscale_on=False,
-								xlim=(-self.WORLD, self.WORLD), ylim=(-self.WORLD, self.WORLD))
-			self.ax.grid(color='gray', linestyle='-', linewidth=0.1)
-			self.cmap = plt.get_cmap('hsv')
-			self.colors = [self.cmap(i) for i in np.linspace(0, 500/self.GROUPS, 500)]
+	
+		self.fig = plt.figure()
+		self.fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
+		self.ax = self.fig.add_subplot(111, aspect='equal', autoscale_on=False,
+							xlim=(-self.WORLD, self.WORLD), ylim=(-self.WORLD, self.WORLD))
+		self.ax.grid(color='gray', linestyle='-', linewidth=0.1)
+		self.cmap = plt.get_cmap('hsv')
+		self.colors = [self.cmap(i) for i in np.linspace(0, 500/self.GROUPS, 500)]
 
-			self.handler = []
-			for i in range(self.GROUPS):
-				self.particles, = self.ax.plot([], [], 'o', color=self.colors[i], ms=5)
-				start = int(math.floor((i) * self.ROBOTS/self.GROUPS))
-				stop = int(math.floor((i+1) * self.ROBOTS/self.GROUPS))
-				self.particles.set_data(self.q[start:stop, 0], self.q[start:stop, 1])
-				self.handler.append(self.particles)
+		self.handler = []
+		for i in range(self.GROUPS):
+			self.particles, = self.ax.plot([], [], 'o', color=self.colors[i], ms=5)
+			start = int(math.floor((i) * self.ROBOTS/self.GROUPS))
+			stop = int(math.floor((i+1) * self.ROBOTS/self.GROUPS))
+			self.particles.set_data(self.q[start:stop, 0], self.q[start:stop, 1])
+			self.handler.append(self.particles)
+		if self.display_mode:
 			plt.ion()
 			plt.show()
 
@@ -137,36 +142,51 @@ class Segregation(object):
 	
 		# Relative distance among all pairs.
 		dsqr = xij**2 + yij**2
-
+		
 		# Add noise to sensor
-		if self.noise != 0.00:
-			s = (dsqr) * (self.noise)/3.0 + np.finfo(float).eps
+		if self.noise_sensor != 0.00:
+			s = (dsqr) * (self.noise_sensor)/3.0 + np.finfo(float).eps
 			# Setup Normal-RNG to operate with max "noise" percent error with an error of 99.7% 3s = e
 			dsqr = np.random.normal(dsqr, s)
 
 		dist = np.sqrt(dsqr)
-		dist[dist > 2.0*self.RADIUS] = 10000000000.0
-		
+		dist[dist > self.WORLD] = self.WORLD
 	
 		# Control equation.
 		dU = np.multiply(self.alpha, (dist - self.const + 1.0/dist - self.const/dsqr))
-	
+		dU[dist > 2.0*self.RADIUS] = 0.0
+
+		for r in self.DEAD_ROBOTS:
+			dU[r,:] = 0.0
+			dU[:,r] = 0.0
+		
 		ax = np.multiply(-dU, xij)/dist - vxij # damping
 		ay = np.multiply(-dU, yij)/dist - vyij # damping
 	
 		# a(i, :) -> acceleration input for robot i.
 		self.a = np.array([np.nansum(ax, axis=1), np.nansum(ay, axis=1)]).T
-		# Add noise to movement
-		# s = (abs(a)*self.noise/3.0) + np.finfo(float).eps
-		#a = np.random.normal(a, s)
+
+		# Add noise to sensor
+		if self.noise_actuation != 0.00:
+			s = abs(self.a) * (self.noise_actuation)/3.0 + np.finfo(float).eps
+			# Setup Normal-RNG to operate with max "noise" percent error with an error of 99.7% 3s = e
+			self.a = np.random.normal(self.a, s)
 	
 	 	# simple taylor expansion.
 		self.q = self.q + self.v*self.dt + self.a*(0.5*self.dt**2)
 		self.v = self.v + self.a*self.dt
-	
-		score = self.metric.compute(self.q)
-		self.metric_data.append(score)
 
+		if self.which_metric == 'cluster':
+			score = self.metric.compute(self.q, self.DEAD_ROBOTS)
+			self.metric_data.append(score)
+
+		m = np.array(abs(self.v))
+		return m[:,0].mean() < 0.001 # stop
+	
+	def get_score(self):
+		score = self.metric.compute(self.q)
+		score2 = self.metric2.compute(self.q)
+		self.metric_data.append([score, score2[0], score2[1]])
 
 	def animate(self, i):
 		if self.display_mode:
@@ -188,16 +208,32 @@ class Segregation(object):
 		self.ax.grid(color='gray', linestyle='-', linewidth=0.1)
 		self.ax.set_xlim([-self.WORLD, self.WORLD])
 		self.ax.set_ylim([-self.WORLD, self.WORLD])
+		self.ax.set_xlabel("X (meters)")
+		self.ax.set_ylabel("Y (meters)")
+		#self.ax.title("")
 		plt.tight_layout()
+		for i in range(self.GROUPS):
+			start = int(math.floor((i) * self.ROBOTS/self.GROUPS))
+			stop = int(math.floor((i+1) * self.ROBOTS/self.GROUPS))
+			robots = []
+			for k in range(start, stop):
+				if not k in self.DEAD_ROBOTS:
+					robots.append(self.q[k,:])
+			robots = np.array(robots)
+			if (self.RADIUS < 1000):
+				self.ax.plot(robots[:, 0], robots[:, 1], 'o', color=self.colors[i], ms=2*self.RADIUS*4.9, fillstyle='none', alpha=0.6) # fig.dpi/72.
 		for i in range(self.GROUPS):
 				start = int(math.floor((i) * self.ROBOTS/self.GROUPS))
 				stop = int(math.floor((i+1) * self.ROBOTS/self.GROUPS))
-				self.ax.plot(self.q[start:stop, 0], self.q[start:stop, 1], 'o', color=self.colors[i], ms=5)
-				if (self.RADIUS < 1000):
-					self.ax.plot(self.q[start:stop, 0], self.q[start:stop, 1], 'o', color=self.colors[i], ms=2*self.RADIUS*4.9, fillstyle='none') # fig.dpi/72.
-					
- 		plt.draw()
-		plt.pause(0.0001)
+				robots = []
+				for k in range(start, stop):
+					if not k in self.DEAD_ROBOTS:
+						robots.append(self.q[k,:])
+				robots = np.array(robots)
+				self.ax.plot(robots[:, 0], robots[:, 1], 'o', color=self.colors[i], ms=5)
+		if self.display_mode:		
+ 			plt.draw()
+			plt.pause(0.0001)
 		#plt.cle
 		#self.anim = animation.FuncAnimation(self.fig, self.animate, frames=10, interval=1, blit=False)
 		#print("Starting Animation")

@@ -45,40 +45,43 @@ experiments_datactrl = []
 SENSOR_NOISES = [0,1,5,10,20]
 #SENSOR_NOISES = [0,20]
 
-for SENSOR_NOISE in SENSOR_NOISES:
-	# Make 100 Experiments
-	print (colored("[Initializing the experiments] exp_150_5_cluster_sensor_noise_"+str(SENSOR_NOISE), 'yellow'))
-	data_metric = []
-	data_control = []
-	for i in range(TRIALS):
-		print (colored("[Experiment]", "yellow")),
-		print (colored(i+1, 'green')),
-		print (colored("of "+str(TRIALS), "red"))
-		s = Segregation(ROBOTS=ROBOTS, GROUPS=GROUPS, WORLD=WORLD, alpha=alpha,  noise_sensor=SENSOR_NOISE/100.0, noise_actuation=noise_actuation, dAA=dAA, dAB=dAB, seed=i, radius=COMM_RADIUS, display_mode=True, which_metric='cluster')
-		bar.start()
-		dc = []
-		for j in range(ITERATIONS):
-			bar.update(j)
-			s.update()
-			a = sum(sum(abs(s.a)))
-			dc.append(a)
-			if j % 50 == 0:
-				s.display()
-		
-		s.screenshot("data3/log/png/log_exp_150_5_cluster_sensor_noise_"+str(SENSOR_NOISE)+"_trial_"+str(i)+".png")
-		s.screenshot("data3/log/eps/log_exp_150_5_cluster_sensor_noise_"+str(SENSOR_NOISE)+"_trial_"+str(i)+".eps")
-		plt.close('all')
-		print ("\n")
-		data_metric.append(s.metric_data)
-		data_control.append(dc)
-	experiments.append(data_metric)
-	experiments_datactrl.append(data_control)
-bar.finish()
+#for SENSOR_NOISE in SENSOR_NOISES:
+#	# Make 100 Experiments
+#	print (colored("[Initializing the experiments] exp_150_5_cluster_sensor_noise_"+str(SENSOR_NOISE), 'yellow'))
+#	data_metric = []
+#	data_control = []
+#	for i in range(TRIALS):
+#		print (colored("[Experiment]", "yellow")),
+#		print (colored(i+1, 'green')),
+#		print (colored("of "+str(TRIALS), "red"))
+#		s = Segregation(ROBOTS=ROBOTS, GROUPS=GROUPS, WORLD=WORLD, alpha=alpha,  noise_sensor=SENSOR_NOISE/100.0, noise_actuation=noise_actuation, dAA=dAA, dAB=dAB, seed=i, radius=COMM_RADIUS, display_mode=True, which_metric='cluster')
+#		bar.start()
+#		dc = []
+#		for j in range(ITERATIONS):
+#			bar.update(j)
+#			s.update()
+#			a = sum(sum(abs(s.a)))
+#			dc.append(a)
+#			if j % 50 == 0:
+#				s.display()
+#		
+#		s.screenshot("data3/log/png/log_exp_150_5_cluster_sensor_noise_"+str(SENSOR_NOISE)+"_trial_"+str(i)+".png")
+#		s.screenshot("data3/log/eps/log_exp_150_5_cluster_sensor_noise_"+str(SENSOR_NOISE)+"_trial_"+str(i)+".eps")
+#		plt.close('all')
+#		print ("\n")
+#		data_metric.append(s.metric_data)
+#		data_control.append(dc)
+#	experiments.append(data_metric)
+#	experiments_datactrl.append(data_control)
+#bar.finish()
+
+experiments = np.load("data3/exp_150_5_cluster_sensor_noise.npy")
+experiments_datactrl = np.load("data3/exp_150_5_cluster_sensor_noise_actuation.npy")
 
 #plt.figure()
 fig, ax = plt.subplots(num=None, facecolor='w', edgecolor='k')
 
-axins = zoomed_inset_axes(ax, 400 , loc=6)	
+axins = zoomed_inset_axes(ax, 2800 , loc=6)	
 axins2 = zoomed_inset_axes(ax, 250 , loc=5)	
 
 
@@ -107,13 +110,13 @@ for i in range(len(experiments)):
 	axins.semilogx(x, mean, filenames[i][2]+'-')
 	axins2.semilogx(x, mean, filenames[i][2]+'-')
 
-axins.set_xlim(5.0012, 5.0071)
-axins.set_ylim(599.936, 600.197)
+axins.set_xlim(5.81226, 5.81582)
+axins.set_ylim(551.072, 551.138)
 axins.set_yticks([])
 axins.set_xticks([])
 
-axins2.set_xlim(48.3221,48.5342)
-axins2.set_ylim(299.577,301.167)
+axins2.set_xlim(313.005, 314.901)
+axins2.set_ylim(25.2408, 25.9555)
 axins2.set_yticks([])
 axins2.set_xticks([])
 
@@ -131,7 +134,7 @@ ax.legend()
 mark_inset(ax, axins, loc1=1, loc2=2, fc="none", ec="0.5")
 mark_inset(ax, axins2, loc1=2, loc2=3, fc="none", ec="0.5")
 
-plt.xticks(visible=False)
+plt.xticks(visible=True)
 plt.yticks(visible=False)
 plt.savefig("data3/plot_exp_150_5_cluster_sensor_noise_mclu.png", dpi=500)
 plt.savefig("data3/plot_exp_150_5_cluster_sensor_noise_mclu.eps", dpi=500)

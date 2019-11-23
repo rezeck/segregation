@@ -7,7 +7,15 @@ import numpy as np
 import math
 import time
 from numba import jit
-
+"""
+- O Algoritmo é bem simples para contar os clusters, mas testei ele bastante e me pareceu confiável; 
+Basicamente, ele itera para cada robô do mesmo tipo de forma a achar um caminho de passo menor ou 
+igual a dAA (distancia minima entre robos do mesmo tipo). Primeiramente, removo um robô na lista e 
+adiciono em uma lista de cluster e busco o vizinho mais proximo. Caso ele satisfaça a condição de 
+distancia minima, ele é adicionando a lista de cluster, e dentre os robôs da lista, busco o proximo 
+vizinho mais perto, e repito o processo até remover todos os robos da lista; caso ele não satisfaça 
+a condição de distancia minima eu fecho a lista de cluster e crio um nova e continuo o processo.
+"""
 
 class NClusterMetric(object):
 	"""	This class implement a metric to count the number of clusters"""
@@ -37,7 +45,7 @@ class NClusterMetric(object):
 						if minDist > dist:
 							minDist = dist
 							mink = k
-				if minDist < 2.0 * self.threshold:
+				if minDist < self.threshold:
 					cluster.append(qi[mink])
 					qi = np.delete(qi, mink, axis=0)
 				else:
@@ -96,17 +104,27 @@ class ClusterMetric(object):
         self.GROUPS = GROUPS
         self.ROBOTS = ROBOTS
 
-    def compute(self, q):
+    def compute(self, q, DEAD_ROBOTS=[]):
         # Compute for each combination of groups of robots the intersection area and accumulate it
         mclu = 0.0
         for i in range(self.GROUPS):
             idx_i = (int(math.floor((i) * self.ROBOTS/self.GROUPS)),
                      int(math.floor((i+1) * self.ROBOTS/self.GROUPS)))
-            qi = q[idx_i[0]:idx_i[1]]
+            qi = []
+            for k in range(idx_i[0], idx_i[1]):
+                if not k in DEAD_ROBOTS:
+                    qi.append(q[k,:])
+            qi = np.array(qi)
+            #qi = q[idx_i[0]:idx_i[1]]
             for j in range(self.GROUPS):
                 idx_j = (int(math.floor((j) * self.ROBOTS/self.GROUPS)),
                          int(math.floor((j+1) * self.ROBOTS/self.GROUPS)))
-                qj = q[idx_j[0]:idx_j[1]]
+                #qj = q[idx_j[0]:idx_j[1]]
+                qj = []
+                for k in range(idx_j[0], idx_j[1]):
+                    if not k in DEAD_ROBOTS:
+                        qj.append(q[k,:])
+                qj = np.array(qj)
                 if idx_i != idx_j:
                     mclu += self.compute_area(qi, qj)
         return mclu
@@ -128,7 +146,7 @@ class ClusterMetric(object):
         # Transform points to polygon
         A_poly = Polygon(A_hull)
         B_poly = Polygon(B_hull)
-
+        
         # Compute the intersections points between the two polygons
         AB_inter = A_poly.intersection(B_poly)
 

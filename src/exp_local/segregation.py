@@ -29,7 +29,7 @@ import matplotlib.animation as animation
 np.seterr(divide='ignore', invalid='ignore')
 class Segregation(object):
 	"""docstring for Segregation"""
-	def __init__(self, alpha=1.5, ROBOTS=15, GROUPS=3, WORLD=40, dt=0.01, dAA=[7], dAB=20, noise_sensor=0.05, noise_actuation=0.05, seed=None, radius=1000, display_mode=False, which_metric='', DEAD_ROBOTS=[]):
+	def __init__(self, alpha=1.5, ROBOTS=15, GROUPS=3, WORLD=40, dt=0.1, dAA=[7], dAB=20, noise_sensor=0.05, noise_actuation=0.05, seed=None, radius=1000, display_mode=False, which_metric='', DEAD_ROBOTS=[]):
 		self.alpha = alpha
 		self.ROBOTS = ROBOTS
 		self.GROUPS = GROUPS
@@ -174,7 +174,12 @@ class Segregation(object):
 	
 	 	# simple taylor expansion.
 		self.q = self.q + self.v*self.dt + self.a*(0.5*self.dt**2)
-		self.v = self.v + self.a*self.dt
+		self.v_n = self.v + self.a*self.dt
+		self.v_n[(self.v_n[:,0] - self.v[:,0]) > 0.1] = 0.1
+		self.v_n[(self.v_n[:,0] - self.v[:,0]) < -0.1] = -0.1
+		self.v_n[(self.v_n[:,1] - self.v[:,1]) > 0.1] = 0.1
+		self.v_n[(self.v_n[:,1] - self.v[:,1]) < -0.1] = -0.1
+		self.v = self.v_n
 
 		if self.which_metric == 'cluster':
 			score = self.metric.compute(self.q, self.DEAD_ROBOTS)
@@ -208,10 +213,14 @@ class Segregation(object):
 		self.ax.grid(color='gray', linestyle='-', linewidth=0.1)
 		self.ax.set_xlim([-self.WORLD, self.WORLD])
 		self.ax.set_ylim([-self.WORLD, self.WORLD])
-		self.ax.set_xlabel("X (meters)")
-		self.ax.set_ylabel("Y (meters)")
+		self.ax.tick_params(axis='both', which='major', labelsize=6)
+		self.ax.set_xlabel("X (meters)", fontsize=7)
+		self.ax.set_ylabel("Y (meters)", fontsize=7)
+		
 		#self.ax.title("")
 		plt.tight_layout()
+		plt.gcf().subplots_adjust(bottom=0.2)
+
 		for i in range(self.GROUPS):
 			start = int(math.floor((i) * self.ROBOTS/self.GROUPS))
 			stop = int(math.floor((i+1) * self.ROBOTS/self.GROUPS))
@@ -221,7 +230,7 @@ class Segregation(object):
 					robots.append(self.q[k,:])
 			robots = np.array(robots)
 			if (self.RADIUS < 1000):
-				self.ax.plot(robots[:, 0], robots[:, 1], 'o', color=self.colors[i], ms=2*self.RADIUS*4.9, fillstyle='none', alpha=0.6) # fig.dpi/72.
+				self.ax.plot(robots[:, 0], robots[:, 1], 'o', color='black', ms=2*self.RADIUS*1.4, fillstyle='none', alpha=0.6,  markeredgecolor=self.colors[i], markeredgewidth=0.1) # fig.dpi/72.
 		for i in range(self.GROUPS):
 				start = int(math.floor((i) * self.ROBOTS/self.GROUPS))
 				stop = int(math.floor((i+1) * self.ROBOTS/self.GROUPS))
@@ -230,14 +239,11 @@ class Segregation(object):
 					if not k in self.DEAD_ROBOTS:
 						robots.append(self.q[k,:])
 				robots = np.array(robots)
-				self.ax.plot(robots[:, 0], robots[:, 1], 'o', color=self.colors[i], ms=5)
+				self.ax.plot(robots[:, 0], robots[:, 1], 'o', markerfacecolor=self.colors[i], fillstyle='none', ms=1, markeredgecolor='black', markeredgewidth=0.1)
 		if self.display_mode:		
- 			plt.draw()
+			plt.draw()
 			plt.pause(0.0001)
-		#plt.cle
-		#self.anim = animation.FuncAnimation(self.fig, self.animate, frames=10, interval=1, blit=False)
-		#print("Starting Animation")
-		#plt.show()
+
 
 	def screenshot(self, filename):
 		plt.savefig(filename, dpi=500)

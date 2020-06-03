@@ -19,46 +19,49 @@ def mean_confidence_interval(data, confidence=0.95):
     return m, m-h, m+h
 
 # Setup
-ROBOTS = 150
-GROUPS = 5
+ROBOTS = 60
+GROUPS = 3
 random.seed(0)
-DEAD_ROBOTS = random.sample(list(range(0,30)), k=0)
-DEAD_ROBOTS += random.sample(list(range(30,60)), k=5)
-DEAD_ROBOTS += random.sample(list(range(60,90)), k=10)
-DEAD_ROBOTS += random.sample(list(range(90,120)), k=15)
-DEAD_ROBOTS += random.sample(list(range(120,150)), k=20)
+# DEAD_ROBOTS = random.sample(list(range(0,30)), k=0)
+# DEAD_ROBOTS += random.sample(list(range(30,60)), k=5)
+# DEAD_ROBOTS += random.sample(list(range(60,90)), k=10)
+# DEAD_ROBOTS += random.sample(list(range(90,120)), k=15)
+# DEAD_ROBOTS = random.sample(list(range(120,150)), k=25)
+# DEAD_ROBOTS = random.sample(list(range(200,225)), k=21)
+# DEAD_ROBOTS += random.sample(list(range(225,250)), k=21)
+
 WORLD	= 40.0
-alpha = 1.0
+alpha = 0.01
 noise_sensor = 0.00
 noise_actuation = 0.00
-dAA = np.array([2.0])
-dAB		= 5.0
-COMM_RADIUS = 10000000000
-ITERATIONS = 10000
-TRIALS = 30
+dAA = np.array([4.0])
+dAB		= 8.0
+COMM_RADIUS = 2
+ITERATIONS = 100000
+TRIALS = 1
 
 # Structure data
 data_metric = []
 data_control = []
 
 # Filename
-filename = "data5/exp_150_5_cluster_unbalanced.npy"
+filename = "data6/exp_150_5_cluster_unbalanced.npy"
 
 bar = progressbar.ProgressBar(maxval=ITERATIONS, \
     widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
 
 experiments = []
 experiments_datactrl = []
-DEAD_ROBOTS_EXP = [[], DEAD_ROBOTS]
-
+DEAD_ROBOTS_EXP = [[]]
+fig_i = 0
 for DROBOTS in DEAD_ROBOTS_EXP:
 	# Make 100 Experiments
 	if not DROBOTS:
 		print (colored("[Initializing the experiments] exp_150_5_cluster_balanced", 'yellow'))
-		ROBOTS = 100
+		ROBOTS = 60
 	else:
 		print (colored("[Initializing the experiments] exp_150_5_cluster_unbalanced", 'yellow'))
-		ROBOTS = 150
+		# ROBOTS = 250
 	data_metric = []
 	data_control = []
 	for i in range(TRIALS):
@@ -73,16 +76,21 @@ for DROBOTS in DEAD_ROBOTS_EXP:
 			s.update()
 			a = sum(sum(abs(s.a)))
 			dc.append(a)
-			if j % 50 == 0:
+			if j % 200 == 0:
 				s.display()
+				# for i in range(10000):
+				# 	pass
 		
-		if not DROBOTS:
-			s.screenshot("data5/log/png/log_exp_150_5_cluster_balanced_trial_"+str(i)+".png")
-			s.screenshot("data5/log/eps/log_exp_150_5_cluster_balanced_trial_"+str(i)+".eps")
-		else:
-			s.screenshot("data5/log/png/log_exp_150_5_cluster_unbalanced_trial_"+str(i)+".png")
-			s.screenshot("data5/log/eps/log_exp_150_5_cluster_unbalanced_trial_"+str(i)+".eps")
-		
+				if not DROBOTS:
+					s.screenshot("data6/log/png/log_exp_150_5_cluster_balanced_trial_"+str(fig_i)+".png")
+					s.screenshot("data6/log/eps/log_exp_150_5_cluster_balanced_trial_"+str(fig_i)+".eps")
+				else:
+					s.screenshot("data6/log/png/log_exp_150_5_cluster_unbalanced_trial_"+str(fig_i)+".png")
+					s.screenshot("data6/log/eps/log_exp_150_5_cluster_unbalanced_trial_"+str(fig_i)+".eps")
+				fig_i += 1
+
+
+			
 		plt.close('all')
 		print ("\n")
 		data_metric.append(s.metric_data)
@@ -125,8 +133,8 @@ plt.ylabel(r'$M_{clu}(q,\tau))$')
 plt.grid(True)
 plt.legend()
 
-plt.savefig("data5/plot_exp_150_5_cluster_unbalanced_mclu.png", dpi=500)
-plt.savefig("data5/plot_exp_150_5_cluster_unbalanced_mclu.eps", dpi=500)
+plt.savefig("data6/plot_exp_150_5_cluster_unbalanced_mclu.png", dpi=500)
+plt.savefig("data6/plot_exp_150_5_cluster_unbalanced_mclu.eps", dpi=500)
 #plt.show()
 
 plt.figure()
@@ -149,15 +157,15 @@ plt.ylabel(r'$\sum{||u_i||}$')
 plt.grid(True)
 plt.legend()
 
-plt.savefig("data5/plot_exp_150_5_cluster_unbalanced_control.png", dpi=500)
-plt.savefig("data5/plot_exp_150_5_cluster_unbalanced_control.eps", dpi=500)
+plt.savefig("data6/plot_exp_150_5_cluster_unbalanced_control.png", dpi=500)
+plt.savefig("data6/plot_exp_150_5_cluster_unbalanced_control.eps", dpi=500)
 plt.show()
 
 
 raw_input("Press the <ENTER> key to finish...")
 print (colored("[Experiment has been completed!]", 'green'))
 print (colored("[Saving Experiments]", 'grey'))
-np.save("data5/exp_150_5_cluster_actuation_noise_mclu.npy", experiments)
-np.save("data5/exp_150_5_cluster_actuation_noise_actuation.npy", experiments_datactrl)
+np.save("data6/exp_150_5_cluster_actuation_noise_mclu.npy", experiments)
+np.save("data6/exp_150_5_cluster_actuation_noise_actuation.npy", experiments_datactrl)
 print (colored("[Finish]", 'green'))
 

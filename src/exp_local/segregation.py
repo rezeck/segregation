@@ -29,7 +29,7 @@ import matplotlib.animation as animation
 np.seterr(divide='ignore', invalid='ignore')
 class Segregation(object):
 	"""docstring for Segregation"""
-	def __init__(self, alpha=1.5, ROBOTS=15, GROUPS=3, WORLD=40, dt=0.1, dAA=[7], dAB=20, noise_sensor=0.05, noise_actuation=0.05, seed=None, radius=1000, display_mode=False, which_metric='', DEAD_ROBOTS=[]):
+	def __init__(self, alpha=1.5, ROBOTS=15, GROUPS=3, WORLD=40, dt=0.02, dAA=[7], dAB=20, noise_sensor=0.05, noise_actuation=0.05, seed=None, radius=1000, display_mode=False, which_metric='', DEAD_ROBOTS=[]):
 		self.alpha = alpha
 		self.ROBOTS = ROBOTS
 		self.GROUPS = GROUPS

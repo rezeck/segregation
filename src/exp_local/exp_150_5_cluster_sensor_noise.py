@@ -81,13 +81,13 @@ experiments_datactrl = np.load("data3/exp_150_5_cluster_sensor_noise_actuation.n
 #plt.figure()
 fig, ax = plt.subplots(num=None, facecolor='w', edgecolor='k')
 
-axins = zoomed_inset_axes(ax, 2800 , loc=6)	
-axins2 = zoomed_inset_axes(ax, 250 , loc=5)	
+axins = zoomed_inset_axes(ax, 10000 , loc=6)	
+axins2 = zoomed_inset_axes(ax, 900 , loc=5)	
 
 
 #Metric NCluster
-filenames = [("exp_150_5_cluster_0_noise.npy", "150 robots (5 types) 0% noise", "b"), ("exp_150_5_cluster_1_noise.npy", "150 robots (5 types) 1% noise", "r"), ("exp_150_5_cluster_5_noise.npy", "150 robots (5 types) 5% noise", "g"), ("exp_150_5_cluster_10_noise.npy", "150 robots (5 types) 10% noise", "y"), ("exp_150_5_cluster_20_noise.npy", "150 robots (5 types) 20% noise", "c"),]
-setup = [('b', '150 robots (5 types) 0% noise'), ('r', '150 robots (5 types) 1% noise'), ('g', '150 robots (5 types) 5% noise'), ('y', '150 robots (5 types) 10% noise'), ('c', '150 robots (5 types) 20% noise')]
+filenames = [("exp_150_5_cluster_0_noise.npy", "150 robots (5 types) 0% noise", "b+"), ("exp_150_5_cluster_1_noise.npy", "150 robots (5 types) 1% noise", "r*"), ("exp_150_5_cluster_5_noise.npy", "150 robots (5 types) 5% noise", "g>"), ("exp_150_5_cluster_10_noise.npy", "150 robots (5 types) 10% noise", "yx"), ("exp_150_5_cluster_20_noise.npy", "150 robots (5 types) 20% noise", "c^"),]
+setup = [('b+', '150 robots (5 types) 0% noise'), ('r*', '150 robots (5 types) 1% noise'), ('g>', '150 robots (5 types) 5% noise'), ('yx', '150 robots (5 types) 10% noise'), ('c^', '150 robots (5 types) 20% noise')]
 
 for i in range(len(experiments)):
 	datas = np.array(experiments[i])
@@ -104,19 +104,19 @@ for i in range(len(experiments)):
 	upper_bound = np.array(upper_bound)/33.0
 	lower_bound = np.array(lower_bound)/33.0
 	x = range(1, len(mean)+1)
-	ax.semilogx(x, mean, filenames[i][2]+'-', label=filenames[i][1], linewidth=1)
-	ax.semilogx(x, upper_bound, filenames[i][2]+'--', linewidth=0.8)
-	ax.semilogx(x, lower_bound, filenames[i][2]+'--', linewidth=0.8)
+	ax.semilogx(x, mean, filenames[i][2]+'-', label=filenames[i][1], linewidth=1, markersize=1, markevery=50)
+	ax.semilogx(x, upper_bound, filenames[i][2][:-1]+'--', linewidth=0.8)
+	ax.semilogx(x, lower_bound, filenames[i][2][:-1]+'--', linewidth=0.8)
 	axins.semilogx(x, mean, filenames[i][2]+'-')
 	axins2.semilogx(x, mean, filenames[i][2]+'-')
 
-axins.set_xlim(5.81226, 5.81582)
-axins.set_ylim(551.072, 551.138)
+axins.set_xlim(4.99883, 5.00013)
+axins.set_ylim(558.751, 558.774)
 axins.set_yticks([])
 axins.set_xticks([])
 
-axins2.set_xlim(313.005, 314.901)
-axins2.set_ylim(25.2408, 25.9555)
+axins2.set_xlim(812.652, 814.993)
+axins2.set_ylim(17.0987, 17.304)
 axins2.set_yticks([])
 axins2.set_xticks([])
 
@@ -125,20 +125,29 @@ ax.set_xlim( 0 )
 ax.set_ylim( 0 ) 
 ax.set_xlim( 0 ) 
 
-ax.set_title('Cluster Segregation Metric')
-ax.set_xlabel('Iterations (log scale)')
-ax.set_ylabel(r'$M_{clu}(q,\tau))$')
+ax.set_title('Cluster Segregation Metric', fontsize=16)
+ax.set_xlabel('Iterations (log scale)',fontsize=16)
+ax.set_ylabel(r'$M_{clu}(q,\tau))$', fontsize=16)
 ax.grid(True)
-ax.legend()
+ax.grid(color='gray', linestyle='-', linewidth=0.5)
+
+ax.legend(prop={'size': 14})
+legend = ax.legend(frameon=True)
+for legend_handle in legend.legendHandles:
+    legend_handle._legmarker.set_markersize(8)
+ax.tick_params(axis='both', which='major', labelsize=12)
+
+# ax.xticks(fontsize=12)
+# ax.yticks(fontsize=12)
 
 mark_inset(ax, axins, loc1=1, loc2=2, fc="none", ec="0.5")
-mark_inset(ax, axins2, loc1=2, loc2=3, fc="none", ec="0.5")
+mark_inset(ax, axins2, loc1=4, loc2=3, fc="none", ec="0.5")
 
 plt.xticks(visible=True)
 plt.yticks(visible=False)
 plt.savefig("data3/plot_exp_150_5_cluster_sensor_noise_mclu.png", dpi=500)
 plt.savefig("data3/plot_exp_150_5_cluster_sensor_noise_mclu.eps", dpi=500)
-#plt.show()
+plt.show()
 
 plt.figure()
 for i in range(len(experiments_datactrl)):
@@ -148,21 +157,25 @@ for i in range(len(experiments_datactrl)):
 		data = np.array(datas[:, j])
 		mean.append(data.mean())	
 	x = range(1, len(mean)+1)
-	plt.semilogx(x[50:], mean[50:], setup[i][0]+'-', label=setup[i][1], linewidth=1)
+	plt.semilogx(x[50:], mean[50:], setup[i][0]+'-', label=setup[i][1], linewidth=1, markevery=100, markersize=6)
 
-plt.ylim(0) 
+plt.ylim([0,2000]) 
 plt.xlim(0) 
-plt.title('Control Input')
-plt.xlabel('Iterations (log scale)')
-plt.ylabel(r'$\sum{||u_i||}$')
+plt.title('Control Input', fontsize=16)
+plt.xlabel('Iterations (log scale)', fontsize=16)
+plt.ylabel(r'$\sum{||u_i||}$', fontsize=16)
 plt.grid(True)
+plt.grid(color='gray', linestyle='-', linewidth=0.5)
 plt.legend()
+ax.legend(markerscale=60)
+ax.legend(prop={'size': 12})
+ax.tick_params(axis='both', which='major', labelsize=12)
 plt.savefig("data3/plot_exp_150_5_cluster_sensor_noise_control.png", dpi=500)
 plt.savefig("data3/plot_exp_150_5_cluster_sensor_noise_control.eps", dpi=500)
 plt.show()
 
 
-raw_input("Press the <ENTER> key to finish...")
+input("Press the <ENTER> key to finish...")
 print (colored("[Experiment has been completed!]", 'green'))
 print (colored("[Saving Experiments]", 'grey'))
 np.save("data3/exp_150_5_cluster_sensor_noise.npy", experiments)

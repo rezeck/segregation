@@ -162,7 +162,7 @@ plt.savefig("data6/plot_exp_150_5_cluster_unbalanced_control.eps", dpi=500)
 plt.show()
 
 
-raw_input("Press the <ENTER> key to finish...")
+input("Press the <ENTER> key to finish...")
 print (colored("[Experiment has been completed!]", 'green'))
 print (colored("[Saving Experiments]", 'grey'))
 np.save("data6/exp_150_5_cluster_actuation_noise_mclu.npy", experiments)
